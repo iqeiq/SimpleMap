@@ -11,6 +11,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
+import android.view.View;
+import android.support.design.widget.FloatingActionButton;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -32,7 +34,8 @@ public class MainActivity extends AppCompatActivity implements
     private GoogleMap googleMap;
     private GoogleApiClient googleApiClient;
     private LocationRequest locationRequest;
-    private boolean requestingLocationUpdate;
+    private boolean firstLocationUpdate;
+    private LatLng currentLatLng;
 
     private enum UpdatingState {STOPPED, REQUESTING, STARTED}
 
@@ -67,6 +70,24 @@ public class MainActivity extends AppCompatActivity implements
         locationRequest.setInterval(10000);
         locationRequest.setFastestInterval(5000);
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+
+        firstLocationUpdate = true;
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.my_location);
+        fab.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if(currentLatLng != null && googleMap != null)
+                    cameraUpdate();
+                else
+                    Log.d(TAG, "currentLatLng == null or googleMap == null");
+            }
+        });
+    }
+
+    private void cameraUpdate() {
+        if(currentLatLng != null && googleMap != null)
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(currentLatLng));
+        else
+            Log.d(TAG, "currentLatLng == null or googleMap == null");
     }
 
     @Override
@@ -121,8 +142,11 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onLocationChanged(Location location) {
         Log.d(TAG, "onLocationChanged: " + location);
-        googleMap.animateCamera(CameraUpdateFactory
-                .newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+        currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+        if(firstLocationUpdate) {
+            cameraUpdate();
+            firstLocationUpdate = false;
+        }
     }
 
     @Override
